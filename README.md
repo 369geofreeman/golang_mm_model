@@ -153,70 +153,10 @@ Feedback Effects: A large market maker can influence the market. Ensure that the
 
 # Misc
 
-**\*\*\*\***\*\*\***\*\*\*\*** HERE **\*\***\*\*\***\*\***
-A web-crawler that follows bot accounts in the media and social networks and buys or sells based on if they all post + or - maket fud
-
 ---
 
-# Initial promp:
+set of values.
 
-Hello. i have a project that I'm working on for academic purposes; it is to test the theory of market making strategies in the cryptocurrency space. The goal of the project is to build a market making system that connects to the Bybit exchange and calculates the optimal bid and ask price in real time. It will then simulate trading using the optimal bid and ask price. Because it's not using real money to trade, and rather just printing what the results would be if it were, slippage is not a concern. Please note this is a forward testing theses, so no backtesting will be done.
-
-About the model:
-The model is an Inventory Control model that uses the Bybits websocket connection to gather the following data:
-
-- "orderbook.50.BTCUSDT",
-- "publicTrade.BTCUSDT",
-- "tickers.BTCUSDT"
-  It then uses the data for the following:
-
-Mid-Price (or Current Price):
-
-- Description: The price that lies exactly between the best bid and best ask in the order book.
-- Usage: Used in the optimization logic to determine the bid and ask spread.
-  Storage Requirement: We only need the current mid-price for our calculations, so we don't need to store a history of values.
-  Recommended Data Structure: A single floating-point variable.
-
-Order Book Depth:
-
-- Description: Represents the total quantity of orders at a particular price level.
-- Usage: Used to determine the base spread in our optimization function.
-- Storage Requirement: We need the current order book depth for our calculations. Storing the entire order book can be memory-intensive, so it's efficient to just - compute the depth when needed.
-- Recommended Data Structure: Depending on the level of granularity required, a slice or array containing the depth for each price level can be useful. For more complex operations, a balanced tree structure like a Red-Black tree or AVL tree can be effective.
-
-Volatility:
-
-- Description: Measure of how much the price of an asset varies over time.
-- Usage: Used in the optimization function to determine the base spread. We're also using its exponential moving average (EMA) to determine optimization frequency.
-- Storage Requirement: While we technically only need the current volatility for our base spread calculation, we're also computing an EMA, which requires us to keep - track of the previous EMA value.
-- Recommended Data Structure: Two floating-point variables: one for the current volatility and another for the EMA of the volatility.
-
-Liquidity:
-
-- Description: Represents the ease with which an asset can be bought or sold without causing a significant movement in the price.
-- Usage: Used in the optimization function to determine the base spread.
-- Storage Requirement: We only need the current liquidity value.
-- Recommended Data Structure: A single floating-point variable.
-
-Max Inventory:
-
-- Description: Represents the maximum inventory our market maker wants to hold.
-- Usage: Used in the optimization function to determine bid and ask prices.
-- Storage Requirement: A single value defining the limit.
-- Recommended Data Structure: A single floating-point variable.
-
-Recent Trades (if used for volatility calculation or other metrics):
-
-- Description: The most recent trades that have occurred in the market.
-- Usage: Can be used to compute metrics like volatility if not provided directly.
-- Storage Requirement: Depending on the frequency of trades and the duration over which you want to measure volatility, you might need to store a rolling window of recent trades.
-- Recommended Data Structure: A circular buffer or a deque would be ideal for this, as they allow efficient additions and removals from both ends.
-
-Optimization Parameters:
-
-- Description: Parameters like alpha, beta, gamma, delta, and zeta used in the optimization function.
-- Usage: Used in the optimization logic.
-- Storage Requirement: Fixed set of values.
 - Recommended Data Structure: Floating-point variables for each parameter.
 
 The market maker will use an optimization function to handle most of the logic and have a cost function associated with it. Here are the details of the optimization logic:
@@ -255,11 +195,3 @@ The parameters (alpha, beta, gamma, delta, zeta) are defined below:
 
 ζ: Determines the significance of order book depth on the base spread. A higher
 ζ means that the model considers a deeper order book as having a more significant impact on the spread.
-
-The market maker is currently written in golang. I would like to share the code with you for this market maker so you can asses it and suggest ways to improve the results. Please remember this first message throughout our conversation and ensure the main goal is to get the most optimal results. Currently the results display an incorrect optimal bid and ask, here is an example:
-
-```
-Optimal Bid: 25869.500000, Optimal Ask: 25869.450000, Price: 25869.550000
-```
-
-Please let me know if you would like any more information about the market maker project and I can provide it for you. Then when you are ready, I will paste the 6 files over the following 3 messages for you to analyse the code and begin helping me, does that sound okay?
