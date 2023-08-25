@@ -83,10 +83,6 @@ func OptimizeSpread(currentPrice float64, inventory *Inventory, volatility, liqu
 		emaVolatility = (1-emaFactor)*emaVolatility + emaFactor*volatility
 	}
 
-	// Base spread calculation based on market conditions
-	// baseSpread := baseSpreadFunction(volatility, liquidity, orderBookDepth)
-	// maxDeviation := max(1.0, baseSpread) // Ensure maxDeviation is at least 1
-
 	// Using CLP to solve the LP problem
 	simp := clp.NewSimplex()
 
@@ -97,36 +93,34 @@ func OptimizeSpread(currentPrice float64, inventory *Inventory, volatility, liqu
 	totalValue := cash + assets*currentPrice
 	assetRatio := assets * currentPrice / totalValue
 
-	// Dynamic weights to prioritize alignment with bid and ask based on asset ratio
-	bidWeight := 1 - assetRatio // Lower asset ratio will increase the bid price
-	askWeight := 1 + assetRatio // Higher asset ratio will increase the ask price
-
-	// Dynamic weights to prioritize alignment with current price
-	c := []float64{bidWeight, askWeight}
-
 	// Define percentage-based deviations for bid and ask
-	bidDeviationPercentage := 0.1 // 0.05 e.g., 5% below the current price
-	askDeviationPercentage := 0.1 // 0.05 e.g., 5% above the current price
+	bidDeviationPercentage := 0.01 // 0.05 e.g., 5% below the current price
+	askDeviationPercentage := 0.01 // 0.05 e.g., 5% above the current price
 
 	// Calculate absolute deviations
 	bidDeviation := currentPrice * bidDeviationPercentage
 	askDeviation := currentPrice * askDeviationPercentage
 
+	// Initial guesses for bid and ask
+	// initialBid := currentPrice - bidDeviation
+	// initialAsk := currentPrice + askDeviation
+
+	// Dynamic weights to prioritize alignment with current price
+	c := objectiveFunction(currentPrice, volatility, liquidity, orderBookDepth, assetRatio)
+
+
 	// Define variable bounds
-	minSpread := currentPrice * 0.0005                   // 0.01 Minimum allowable spread between bid and ask
+	minSpread := currentPrice * 0.01                   // 0.01 Minimum allowable spread between bid and ask
 	varBounds := [][2]float64{
-		{currentPrice - bidDeviation, currentPrice + bidDeviation}, // Bounds for Bid Price
-		{currentPrice, currentPrice + 2 * askDeviation},            // Bounds for Ask Price
-		// {currentPrice + askDeviation, currentPrice - askDeviation},            // Bounds for Ask Price
+		{currentPrice - bidDeviation, currentPrice}, // Bounds for Bid Price
+		{currentPrice, currentPrice + askDeviation}, // Bounds for Ask Price
 	}
 
 	// Constraints
 	ineqs := [][]float64{
-		{0, -1, 1, minSpread},  // Ensure ask is greater than bid by at least minSpread
-		{minSpread, 1, -1, 0}, // Ensure bid is less than or equal to currentPrice
+		{0, 1, -1, -minSpread}, // Ensure bid is less than ask by at least minSpread
 	}
 	
-
 	simp.EasyLoadDenseProblem(c, varBounds, ineqs)
 	simp.SetOptimizationDirection(clp.Minimize)
 	test_primal := simp.Primal(clp.NoValuesPass, clp.NoStartFinishOptions)
@@ -182,6 +176,19 @@ func max(a, b float64) float64 {
 	}
 	return b
 }
+
+// Objective function to define the coefficients for the optimization problem
+func objectiveFunction(currentPrice, volatility, liquidity, orderBookDepth float64, assetRatio float64) []float64 {
+	volatilityPenalty := alpha * volatility
+	liquidityPenalty := beta / (liquidity + 1) // Assuming liquidity is always positive
+	orderBookPenalty := gamma * math.Log(1 + orderBookDepth)
+
+	return []float64{
+		-1 + volatilityPenalty + liquidityPenalty + orderBookPenalty,
+		1 - volatilityPenalty - liquidityPenalty - orderBookPenalty,
+	}
+}
+
 
 func costFunction(vA, vB, a, b, currentPrice, volatility float64) float64 {
 	inventoryRisk := alpha * math.Pow(vA-vB, 2) // Penalize imbalances between vA and vB
